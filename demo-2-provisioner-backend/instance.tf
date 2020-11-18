@@ -1,17 +1,21 @@
-resource "aws_key_pair" "mykey" {
-  key_name   = "mykey"
-  public_key = file(var.PATH_TO_PUBLIC_KEY)
-}
+# resource "aws_key_pair" "mykey" {
+#   key_name   = "mykey"
+#   public_key = file(var.PATH_TO_PUBLIC_KEY)
+# }
 
-resource "aws_instance" "example" {
+resource "aws_instance" "nginx-1" {
   ami           = var.AMIS[var.AWS_REGION]
   instance_type = "t2.micro"
-  key_name      = aws_key_pair.mykey.key_name
+  key_name      = "eks-course"
+  tags = {
+    Name = "nginx-3"
+  }
 
   provisioner "file" {
     source      = "script.sh"
     destination = "/tmp/script.sh"
   }
+
   provisioner "remote-exec" {
     inline = [
       "chmod +x /tmp/script.sh",
@@ -19,6 +23,11 @@ resource "aws_instance" "example" {
       "sudo /tmp/script.sh",
     ]
   }
+
+  provisioner "local-exec" {
+    command = "echo ${aws_instance.nginx-1.private_ip} >> private_ips.txt"
+  }
+
   connection {
     host        = coalesce(self.public_ip, self.private_ip)
     type        = "ssh"
@@ -27,3 +36,7 @@ resource "aws_instance" "example" {
   }
 }
 
+
+output "ip" {
+  value = aws_instance.nginx-1.public_ip
+}
